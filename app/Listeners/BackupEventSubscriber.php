@@ -3,7 +3,6 @@
 namespace App\Listeners;
 
 use App\Models\BackupHistory;
-use Illuminate\Events\Dispatcher;
 use Spatie\Backup\Events\BackupHasFailed;
 use Spatie\Backup\Events\BackupWasSuccessful;
 use Spatie\Backup\Events\CleanupHasFailed;
@@ -71,7 +70,7 @@ class BackupEventSubscriber
         BackupHistory::create([
             'type' => 'monitor',
             'status' => 'success',
-            'message' => 'Backup health check passed for: ' . $event->backupDestination->backupName(),
+            'message' => 'Backup health check passed for: '.$event->backupDestination->backupName(),
         ]);
     }
 
@@ -83,7 +82,7 @@ class BackupEventSubscriber
         BackupHistory::create([
             'type' => 'monitor',
             'status' => 'failed',
-            'message' => 'Unhealthy backup found: ' . $event->backupDestination->backupName() . '. Reason: ' . $event->failReason,
+            'message' => 'Unhealthy backup found: '.$event->backupDestination->backupName().'. Reason: '.$event->failReason,
         ]);
     }
 

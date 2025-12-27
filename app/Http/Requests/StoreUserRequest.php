@@ -25,7 +25,7 @@ class StoreUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', 'string', 'in:' . implode(',', [
+            'role' => ['required', 'string', 'in:'.implode(',', [
                 env('ADMIN', 'admin'),
                 env('EDITOR', 'editor'),
                 env('AUTHOR', 'author'),

@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Article;
 use App\Http\Requests\StoreArticleRequest;
 use App\Http\Requests\UpdateArticleRequest;
+use App\Models\Article;
 use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Str;
 
 class ArticleController extends Controller
 {
@@ -24,7 +23,7 @@ class ArticleController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Article::with(['section', 'issue']);
+        $query = Article::with(['issue']);
 
         // Filters
         if ($request->filled('status')) {
@@ -32,7 +31,7 @@ class ArticleController extends Controller
         }
 
         if ($request->filled('author')) {
-            $query->where('author_name', 'like', '%' . $request->author . '%');
+            $query->where('author_name', 'like', '%'.$request->author.'%');
         }
 
         if ($request->filled('date')) {
@@ -53,10 +52,11 @@ class ArticleController extends Controller
     public function store(StoreArticleRequest $request, $section_id = null, $issue_id = null)
     {
         $data = $request->validated();
-        
+
         // If IDs are passed via route, ensure they are used (though merge in request handles validation)
-        if ($section_id) $data['section_id'] = $section_id;
-        if ($issue_id) $data['issue_id'] = $issue_id;
+        if ($issue_id) {
+            $data['issue_id'] = $issue_id;
+        }
 
         // Assign current user
         $data['user_id'] = $request->user()->id;
@@ -73,7 +73,7 @@ class ArticleController extends Controller
 
         return response()->json([
             'message' => 'Article created successfully',
-            'article' => $article
+            'article' => $article,
         ], 201);
     }
 
@@ -82,12 +82,12 @@ class ArticleController extends Controller
      */
     public function show($id)
     {
-        $article = Article::with(['section', 'issue'])->findOrFail($id);
+        $article = Article::with(['issue'])->findOrFail($id);
 
         // Get visited articles from cookie
         $visitedArticles = json_decode(Cookie::get('visited_articles', '[]'), true);
 
-        if (!in_array($article->id, $visitedArticles)) {
+        if (! in_array($article->id, $visitedArticles)) {
             // Increment views
             $article->increment('views_count');
 
@@ -112,7 +112,7 @@ class ArticleController extends Controller
         $data = $request->validated();
         $user = $request->user();
 
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -133,7 +133,7 @@ class ArticleController extends Controller
 
         return response()->json([
             'message' => 'Article updated successfully',
-            'article' => $article
+            'article' => $article,
         ]);
     }
 
@@ -144,14 +144,14 @@ class ArticleController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && !$user->isAuthor()) {
+        if (! $user->isAdmin() && ! $user->isAuthor()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $article->delete(); // Soft delete because of SoftDeletes trait
 
         return response()->json([
-            'message' => 'Article deleted successfully'
+            'message' => 'Article deleted successfully',
         ]);
     }
 }

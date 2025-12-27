@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Issue;
 use App\Http\Requests\StoreIssueRequest;
 use App\Http\Requests\UpdateIssueRequest;
-use App\Services\ImageUploadService;
+use App\Models\Issue;
 use App\Services\FileUploadService;
+use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
-use Intervention\Image\Colors\Rgb\Channels\Red;
+use Illuminate\Support\Facades\DB;
 
 class IssueController extends Controller
 {
     protected $imageService;
+
     protected $fileUploadService;
 
     public function __construct(ImageUploadService $imageService, FileUploadService $fileUploadService)
@@ -27,6 +28,7 @@ class IssueController extends Controller
     public function index()
     {
         $issues = Issue::orderBy('issue_number', 'desc')->paginate(10);
+
         return response()->json($issues);
     }
 
@@ -37,12 +39,12 @@ class IssueController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && !$user->isAuthor()) {
+        if (! $user->isAdmin() && ! $user->isAuthor()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $data = $request->validated();
-        
+
         // Assign current user
         $data['user_id'] = $user->id;
         // $data['issue_number']=
@@ -71,11 +73,44 @@ class IssueController extends Controller
             );
         }
 
-        $issue = Issue::create($data);
+        if (! isset($data['issue_number']) || $data['issue_number'] === null) {
+            $data['issue_number'] = (Issue::max('issue_number') ?? 0) + 1;
+        }
+
+        $data['status'] = $data['status'] ?? env('ISSUE_STATUS_DRAFT', 'draft');
+        $data['slug'] = $this->makeUniqueIssueSlug($data['title']);
+
+        $issue = DB::transaction(function () use ($data, $user) {
+            $issue = Issue::create($data);
+
+            $defaultArticles = [
+                ['title' => 'افتتــاحية الــعدد', 'className' => 'arc-opening'],
+                ['title' => 'قــاموس المصطلحـات', 'className' => 'arc-glossary'],
+                ['title' => 'شخـصيــات صوفـيــة', 'className' => 'arc-profiles'],
+                ['title' => 'إحصــائيات وتحليلات', 'className' => 'arc-stats'],
+                ['title' => 'الصوفية حول العالم', 'className' => 'arc-news'],
+                ['title' => 'شبهــات تحت المجهر', 'className' => 'arc-refutations'],
+                ['title' => 'خـزّانــة الوثــائق', 'className' => 'arc-archive'],
+                ['title' => 'مـحـطــات تـاريخية', 'className' => 'arc-history'],
+                ['title' => 'عـصــارة الـكـتــب', 'className' => 'arc-library'],
+            ];
+
+            $issue->articles()->createMany(array_map(function (array $article) use ($user, $issue) {
+                return [
+                    'user_id' => $user->id,
+                    'title' => $article['title'],
+                    'slug' => $this->makeArabicSlug($article['title']),
+                    'className' => $article['className'],
+                    'status' => $issue->status,
+                ];
+            }, $defaultArticles));
+
+            return $issue;
+        });
 
         return response()->json([
             'message' => 'Issue created successfully',
-            'issue' => $issue
+            'issue' => $issue,
         ], 201);
     }
 
@@ -85,10 +120,10 @@ class IssueController extends Controller
     public function show($id)
     {
         $issue = Issue::with('articles')->findOrFail($id);
-        
+
         // Increment views
         $issue->increment('views_count');
-        
+
         return response()->json($issue);
     }
 
@@ -99,7 +134,7 @@ class IssueController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && !$user->isAuthor()) {
+        if (! $user->isAdmin() && ! $user->isAuthor()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -148,7 +183,37 @@ class IssueController extends Controller
 
         return response()->json([
             'message' => 'Issue updated successfully',
-            'issue' => $issue
+            'issue' => $issue,
+        ]);
+    }
+
+    public function publish(Request $request, Issue $issue)
+    {
+        $user = $request->user();
+
+        if (! $user->isAdmin() && ! $user->isAuthor()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $publishedStatus = env('ISSUE_STATUS_PUBLISHED', 'published');
+        $articlePublishedStatus = env('ARTICLE_STATUS_PUBLISHED', 'published');
+        $publishedAt = now();
+
+        DB::transaction(function () use ($issue, $publishedStatus, $articlePublishedStatus, $publishedAt) {
+            $issue->update([
+                'status' => $publishedStatus,
+                'published_at' => $issue->published_at ?? $publishedAt,
+            ]);
+
+            $issue->articles()->update([
+                'status' => $articlePublishedStatus,
+                'published_at' => DB::raw('COALESCE(published_at, NOW())'),
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Issue published successfully',
+            'issue' => $issue->load('articles'),
         ]);
     }
 
@@ -159,7 +224,7 @@ class IssueController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && !$user->isAuthor()) {
+        if (! $user->isAdmin() && ! $user->isAuthor()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -181,7 +246,33 @@ class IssueController extends Controller
         $issue->delete();
 
         return response()->json([
-            'message' => 'Issue deleted successfully'
+            'message' => 'Issue deleted successfully',
         ]);
+    }
+
+    private function makeArabicSlug(string $value): string
+    {
+        $value = trim($value);
+        $value = preg_replace('/\s+/u', '-', $value) ?? '';
+        $value = preg_replace('/[^\p{Arabic}\p{L}\p{N}\-]+/u', '-', $value) ?? '';
+        $value = preg_replace('/-+/', '-', $value) ?? '';
+
+        return trim($value, '-');
+    }
+
+    private function makeUniqueIssueSlug(string $title): string
+    {
+        $baseSlug = $this->makeArabicSlug($title);
+        $baseSlug = $baseSlug !== '' ? $baseSlug : 'issue';
+
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while (Issue::where('slug', $slug)->exists()) {
+            $slug = $baseSlug.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
     }
 }

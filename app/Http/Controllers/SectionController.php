@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Section;
-use Illuminate\Http\Request;
 
 class SectionController extends Controller
 {
@@ -13,6 +12,7 @@ class SectionController extends Controller
     public function index()
     {
         $sections = Section::where('is_active', true)->get();
+
         return response()->json($sections);
     }
 
@@ -22,6 +22,7 @@ class SectionController extends Controller
     public function show($id)
     {
         $section = Section::where('is_active', true)->findOrFail($id);
+
         return response()->json($section);
     }
 }

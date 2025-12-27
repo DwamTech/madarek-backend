@@ -23,7 +23,7 @@ class Issue extends Model
         'published_at',
         'is_featured',
         'sort_order',
-        'user_id'
+        'user_id',
     ];
 
     protected $casts = [
@@ -37,26 +37,27 @@ class Issue extends Model
     public function getCoverImageAttribute($value)
     {
         if ($value) {
-            return asset('storage/' . $value);
+            return asset('storage/'.$value);
         }
+
         return null;
     }
-
-
 
     public function getCoverImageAltAttribute($value)
     {
         if ($value) {
-            return asset('storage/' . $value);
+            return asset('storage/'.$value);
         }
+
         return null;
     }
 
     public function getPdfFileAttribute($value)
     {
         if ($value) {
-            return asset('storage/' . $value);
+            return asset('storage/'.$value);
         }
+
         return null;
     }
 
@@ -65,6 +66,7 @@ class Issue extends Model
         if ($this->relationLoaded('articles')) {
             return $this->articles->sum('views_count');
         }
+
         return $this->articles()->sum('views_count');
     }
 

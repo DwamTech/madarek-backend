@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BackupHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use ZipArchive;
-use App\Models\BackupHistory;
 
 class BackupController extends Controller
 {
@@ -93,14 +93,15 @@ class BackupController extends Controller
      */
     public function create(Request $request)
     {
-        file_put_contents(storage_path('logs/debug_backup.log'), "Create method called at " . date('Y-m-d H:i:s') . "\n", FILE_APPEND);
-        
+        file_put_contents(storage_path('logs/debug_backup.log'), 'Create method called at '.date('Y-m-d H:i:s')."\n", FILE_APPEND);
+
         try {
             $mode = strtolower((string) $request->input('mode', 'full'));
             file_put_contents(storage_path('logs/debug_backup.log'), "Mode: $mode\n", FILE_APPEND);
 
             if (! in_array($mode, ['full', 'db'], true)) {
                 file_put_contents(storage_path('logs/debug_backup.log'), "Invalid mode\n", FILE_APPEND);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid mode. Allowed values: full, db',
@@ -131,17 +132,18 @@ class BackupController extends Controller
             return response()->json([
                 'success' => true,
                 'mode' => $mode,
-                'message' => 'Backup process has been queued and will run in the background.'
+                'message' => 'Backup process has been queued and will run in the background.',
             ]);
 
         } catch (\Exception $e) {
-            file_put_contents(storage_path('logs/debug_backup.log'), "Exception: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
+            file_put_contents(storage_path('logs/debug_backup.log'), 'Exception: '.$e->getMessage()."\n".$e->getTraceAsString()."\n", FILE_APPEND);
             Log::error('Backup queue failed: '.$e->getMessage());
 
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         } catch (\Throwable $t) {
-             file_put_contents(storage_path('logs/debug_backup.log'), "Fatal Error: " . $t->getMessage() . "\n" . $t->getTraceAsString() . "\n", FILE_APPEND);
-             return response()->json(['success' => false, 'message' => $t->getMessage()], 500);
+            file_put_contents(storage_path('logs/debug_backup.log'), 'Fatal Error: '.$t->getMessage()."\n".$t->getTraceAsString()."\n", FILE_APPEND);
+
+            return response()->json(['success' => false, 'message' => $t->getMessage()], 500);
         }
     }
 
@@ -486,18 +488,18 @@ class BackupController extends Controller
 
         $file = $request->file('file');
         $originalName = $file->getClientOriginalName();
-        
+
         // التأكد من أن الامتداد zip
-        if (!str_ends_with(strtolower($originalName), '.zip')) {
-             return response()->json(['message' => 'File must be a zip archive.'], 422);
+        if (! str_ends_with(strtolower($originalName), '.zip')) {
+            return response()->json(['message' => 'File must be a zip archive.'], 422);
         }
 
         $backupDisk = Storage::disk('local');
         $appName = config('backup.backup.name');
-        
+
         // التحقق من وجود الملف مسبقاً لمنع التكرار أو الكتابة فوقه
-        $destinationPath = $appName . '/' . $originalName;
-        
+        $destinationPath = $appName.'/'.$originalName;
+
         if ($backupDisk->exists($destinationPath)) {
             return response()->json(['message' => 'A backup file with this name already exists.'], 409);
         }
@@ -505,7 +507,7 @@ class BackupController extends Controller
         try {
             // حفظ الملف
             $backupDisk->putFileAs($appName, $file, $originalName);
-            
+
             // تسجيل في السجل
             BackupHistory::create([
                 'type' => 'upload',
@@ -519,11 +521,12 @@ class BackupController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Backup uploaded successfully.',
-                'file_name' => $originalName
+                'file_name' => $originalName,
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Backup upload failed: ' . $e->getMessage());
+            Log::error('Backup upload failed: '.$e->getMessage());
+
             return response()->json(['message' => 'Failed to upload backup.'], 500);
         }
     }

@@ -4,9 +4,9 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class ImageUploadService
 {
@@ -14,27 +14,26 @@ class ImageUploadService
 
     public function __construct()
     {
-        $this->manager = new ImageManager(new Driver());
+        $this->manager = new ImageManager(new Driver);
     }
 
     /**
      * Upload and optimize image
      *
-     * @param UploadedFile $file The file to upload
-     * @param string $directory The directory within storage/app/public
-     * @param int $maxWidth Max width (preserves aspect ratio, no upsizing)
-     * @param int $quality Quality (0-100)
-     * @param string $format Output format ('jpg', 'jpeg', 'webp', 'png')
+     * @param  UploadedFile  $file  The file to upload
+     * @param  string  $directory  The directory within storage/app/public
+     * @param  int  $maxWidth  Max width (preserves aspect ratio, no upsizing)
+     * @param  int  $quality  Quality (0-100)
+     * @param  string  $format  Output format ('jpg', 'jpeg', 'webp', 'png')
      * @return string The stored file path
      */
     public function upload(
-        UploadedFile $file, 
-        string $directory = 'uploads', 
-        int $maxWidth = 1200, 
+        UploadedFile $file,
+        string $directory = 'uploads',
+        int $maxWidth = 1200,
         int $quality = 75,
         string $format = 'jpg'
-    ): string
-    {
+    ): string {
         // Normalize format
         $format = strtolower($format);
         if ($format === 'jpeg') {
@@ -43,17 +42,17 @@ class ImageUploadService
 
         // Create unique filename
         $extension = $format;
-        $filename = time() . '_' . Str::random(10) . '.' . $extension;
-        
+        $filename = time().'_'.Str::random(10).'.'.$extension;
+
         // Organized storage: uploads/2024/01/filename.ext
-        $path = $directory . '/' . date('Y/m');
-        
+        $path = $directory.'/'.date('Y/m');
+
         // Ensure directory exists
-        if (!Storage::disk('public')->exists($path)) {
+        if (! Storage::disk('public')->exists($path)) {
             Storage::disk('public')->makeDirectory($path);
         }
 
-        $fullPath = $path . '/' . $filename;
+        $fullPath = $path.'/'.$filename;
 
         // Process image
         $image = $this->manager->read($file);
@@ -83,13 +82,12 @@ class ImageUploadService
 
     /**
      * Delete image from storage
-     * 
-     * @param string|null $path Relative path in public disk
-     * @return bool
+     *
+     * @param  string|null  $path  Relative path in public disk
      */
     public function delete(?string $path): bool
     {
-        if (!$path) {
+        if (! $path) {
             return false;
         }
 

@@ -12,10 +12,11 @@ class Article extends Model
 
     protected $fillable = [
         'user_id',
-        'section_id',
+        // 'section_id',
         'issue_id',
         'title',
         'slug',
+        'keywords',
         'excerpt',
         'content',
         'author_name',
@@ -26,6 +27,7 @@ class Article extends Model
         'status',
         'published_at',
         'views_count',
+        'className',
     ];
 
     protected $casts = [
@@ -38,15 +40,16 @@ class Article extends Model
     public function getFeaturedImageAttribute($value)
     {
         if ($value) {
-            return asset('storage/' . $value);
+            return asset('storage/'.$value);
         }
+
         return null;
     }
 
-    public function section()
-    {
-        return $this->belongsTo(Section::class);
-    }
+    // public function section()
+    // {
+    //     return $this->belongsTo(Section::class);
+    // }
 
     public function issue()
     {

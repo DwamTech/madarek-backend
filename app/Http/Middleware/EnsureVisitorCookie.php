@@ -19,7 +19,7 @@ class EnsureVisitorCookie
     {
         $response = $next($request);
 
-        if (!$request->hasCookie('visitor_id')) {
+        if (! $request->hasCookie('visitor_id')) {
             $visitorId = (string) Str::uuid();
             $cookie = Cookie::make('visitor_id', $visitorId, 60 * 24 * 30); // 30 days
             $response->headers->setCookie($cookie);

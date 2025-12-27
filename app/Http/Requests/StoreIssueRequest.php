@@ -25,7 +25,6 @@ class StoreIssueRequest extends FormRequest
         return [
             'title' => 'required|string|max:255',
             // 'user_id' => 'required|integer|exists:users,id',
-            'slug' => 'required|string|unique:issues,slug|max:255',
             'issue_number' => 'nullable|integer|unique:issues,issue_number',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096', // 4MB Max
             'cover_image_alt' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
@@ -33,7 +32,7 @@ class StoreIssueRequest extends FormRequest
             // Consider file validation if handling upload
             'hijri_date' => 'nullable|string',
             'gregorian_date' => 'nullable|string',
-            'status' => ['required', Rule::in([
+            'status' => ['nullable', Rule::in([
                 env('ISSUE_STATUS_DRAFT', 'draft'),
                 env('ISSUE_STATUS_PUBLISHED', 'published'),
                 env('ISSUE_STATUS_ARCHIVED', 'archived'),

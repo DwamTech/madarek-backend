@@ -22,11 +22,11 @@ class UpdateArticleRequest extends FormRequest
      */
     public function rules(): array
     {
+        $issueId = $this->input('issue_id')
+            ?? optional($this->route('article'))->issue_id;
+
         return [
-            'section_id' => 'sometimes|exists:sections,id',
             'issue_id' => 'sometimes|exists:issues,id',
-            'title' => 'sometimes|string|max:255',
-            'slug' => ['sometimes', 'string', 'max:255', Rule::unique('articles', 'slug')->ignore($this->route('article'))],
             'excerpt' => 'nullable|string',
             'content' => 'sometimes|string',
             'author_name' => 'sometimes|string|max:255',
@@ -34,6 +34,7 @@ class UpdateArticleRequest extends FormRequest
             'gregorian_date' => 'nullable|string',
             'hijri_date' => 'nullable|string',
             'references' => 'nullable|string',
+            // 'className' => 'nullable|string|max:255',
             'status' => ['sometimes', Rule::in([
                 env('ARTICLE_STATUS_DRAFT', 'draft'),
                 env('ARTICLE_STATUS_PUBLISHED', 'published'),

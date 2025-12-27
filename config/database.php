@@ -64,7 +64,7 @@ return [
             'dump' => [
                 'dump_binary_path' => 'C:\xampp\mysql\bin',
                 'use_single_transaction' => true,
-                'timeout' => 60 * 5, 
+                'timeout' => 60 * 5,
                 'add_extra_option' => '--skip-lock-tables', // Removed --protocol=tcp to test
             ],
         ],

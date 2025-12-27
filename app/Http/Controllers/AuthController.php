@@ -25,7 +25,7 @@ class AuthController extends Controller
 
         return response()->json([
             'user' => new UserResource($user),
-            'token' => $user->createToken('API Token of ' . $user->name)->plainTextToken,
+            'token' => $user->createToken('API Token of '.$user->name)->plainTextToken,
         ]);
     }
 
@@ -33,7 +33,7 @@ class AuthController extends Controller
     {
         $request->validated($request->all());
 
-        if (!Auth::attempt($request->only(['email', 'password']))) {
+        if (! Auth::attempt($request->only(['email', 'password']))) {
             return response()->json([
                 'message' => 'Credentials do not match.',
             ], 401);
@@ -43,7 +43,7 @@ class AuthController extends Controller
 
         return response()->json([
             'user' => new UserResource($user),
-            'token' => $user->createToken('API Token of ' . $user->name)->plainTextToken,
+            'token' => $user->createToken('API Token of '.$user->name)->plainTextToken,
         ]);
     }
 

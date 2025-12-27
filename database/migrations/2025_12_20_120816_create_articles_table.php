@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('articles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('section_id')->constrained('sections')->onDelete('cascade');
+            // $table->foreignId('section_id')->constrained('sections')->onDelete('cascade');
             $table->foreignId('issue_id')->constrained('issues')->onDelete('cascade');
             $table->string('title');
             $table->string('slug')->unique();
-            $table->text('excerpt')->nullable();
-            $table->longText('content');
-            $table->string('author_name');
+            $table->text('keywords')->nullable();
+            $table->longText('content')->nullable();
+            $table->string('author_name')->nullable();
             $table->string('featured_image')->nullable();
             $table->date('gregorian_date')->nullable();
             $table->string('hijri_date')->nullable();
@@ -31,6 +31,7 @@ return new class extends Migration
             ])->default(env('ARTICLE_STATUS_DRAFT', 'draft'));
             $table->timestamp('published_at')->nullable();
             $table->integer('views_count')->default(0);
+            $table->string('className')->default(0);
             $table->softDeletes();
             $table->timestamps();
         });

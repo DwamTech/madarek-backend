@@ -14,7 +14,7 @@ class Section extends Model
         'slug',
         'description',
         'is_active',
-        'user_id'
+        'user_id',
     ];
 
     protected $casts = [
