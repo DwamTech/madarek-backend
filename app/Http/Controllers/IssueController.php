@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreIssueRequest;
 use App\Http\Requests\UpdateIssueRequest;
+use App\Models\Article;
 use App\Models\Issue;
 use App\Services\FileUploadService;
 use App\Services\ImageUploadService;
@@ -25,10 +26,12 @@ class IssueController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $issues = Issue::orderBy('issue_number', 'desc')->paginate(10);
-
+        if ($request->status) {
+            $issues = $issues->where('status', $request->status);
+        }
         return response()->json($issues);
     }
 
@@ -194,26 +197,96 @@ class IssueController extends Controller
         if (! $user->isAdmin() && ! $user->isAuthor()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
+        $message = null;
 
-        $publishedStatus = env('ISSUE_STATUS_PUBLISHED', 'published');
-        $articlePublishedStatus = env('ARTICLE_STATUS_PUBLISHED', 'published');
-        $publishedAt = now();
+        if ($issue->status == env('ARTICLE_STATUS_ARCHIVED', 'archived')) {
+            $publishedStatus = env('ISSUE_STATUS_PUBLISHED', 'published');
+            $articlePublishedStatus = env('ARTICLE_STATUS_PUBLISHED', 'published');
+            $publishedAt = now();
 
-        DB::transaction(function () use ($issue, $publishedStatus, $articlePublishedStatus, $publishedAt) {
-            $issue->update([
-                'status' => $publishedStatus,
-                'published_at' => $issue->published_at ?? $publishedAt,
-            ]);
+            DB::transaction(function () use ($issue, $publishedStatus, $articlePublishedStatus, $publishedAt) {
+                $issue->update([
+                    'status' => $publishedStatus,
+                    'published_at' => $issue->published_at ?? $publishedAt,
+                ]);
 
-            $issue->articles()->update([
-                'status' => $articlePublishedStatus,
-                'published_at' => DB::raw('COALESCE(published_at, NOW())'),
-            ]);
-        });
+                $issue->articles()->update([
+                    'status' => $articlePublishedStatus,
+                    'published_at' => DB::raw('COALESCE(published_at, NOW())'),
+                ]);
+            });
+            $message = 'Issue published successfully';
+        } else {
+            $archivedStatus = env('ARTICLE_STATUS_ARCHIVED', 'archived');
+            $articleArchivedStatus = env('ARTICLE_STATUS_ARCHIVED', 'archived');
+            // $publishedAt = now();
+
+            DB::transaction(function () use ($issue, $archivedStatus, $articleArchivedStatus) {
+                $issue->update([
+                    'status' => $archivedStatus,
+                    'published_at' => null,
+                ]);
+
+                $issue->articles()->update(values: [
+                    'status' =>  $articleArchivedStatus = env('ARTICLE_STATUS_ARCHIVED', 'archived'),
+                    'published_at' => null,
+                ]);
+            });
+            $message = 'Issue archived successfully';
+        }
 
         return response()->json([
-            'message' => 'Issue published successfully',
+            'message' => $message,
             'issue' => $issue->load('articles'),
+        ]);
+    }
+
+    public function dashboardStats(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user->isAdmin() && ! $user->isAuthor()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $year = (int) $request->query('year', now()->year);
+
+        $issuesCount = Issue::count();
+        $totalViews = Article::sum('views_count');
+
+        $issuesByMonth = Issue::query()
+            ->selectRaw('MONTH(created_at) as month, COUNT(*) as count')
+            ->whereYear('created_at', $year)
+            ->groupByRaw('MONTH(created_at)')
+            ->pluck('count', 'month')
+            ->all();
+
+        $viewsByMonth = Article::query()
+            ->join('issues', 'issues.id', '=', 'articles.issue_id')
+            ->selectRaw('MONTH(issues.created_at) as month, SUM(articles.views_count) as views')
+            ->whereYear('issues.created_at', $year)
+            ->groupByRaw('MONTH(issues.created_at)')
+            ->pluck('views', 'month')
+            ->all();
+
+        $months = range(1, 12);
+
+        $issuesSeries = array_map(fn(int $month) => [
+            'month' => $month,
+            'count' => (int) ($issuesByMonth[$month] ?? 0),
+        ], $months);
+
+        $viewsSeries = array_map(fn(int $month) => [
+            'month' => $month,
+            'views' => (int) ($viewsByMonth[$month] ?? 0),
+        ], $months);
+
+        return response()->json([
+            'year' => $year,
+            'issues_count' => $issuesCount,
+            'total_views' => (int) $totalViews,
+            'issues_by_month' => $issuesSeries,
+            'views_by_month' => $viewsSeries,
         ]);
     }
 
@@ -269,7 +342,7 @@ class IssueController extends Controller
         $suffix = 2;
 
         while (Issue::where('slug', $slug)->exists()) {
-            $slug = $baseSlug.'-'.$suffix;
+            $slug = $baseSlug . '-' . $suffix;
             $suffix++;
         }
 

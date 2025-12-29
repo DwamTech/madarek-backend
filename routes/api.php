@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\IssueController;
 use App\Http\Controllers\SectionController;
+use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureVisitorCookie;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,7 @@ Route::get('/issues', [IssueController::class, 'index']);
 Route::get('/issues/{id}', [IssueController::class, 'show']);
 
 // Public article routes
+Route::get('/issues/{issue}/articles', [ArticleController::class, 'byIssue']);
 Route::get('/articles', [ArticleController::class, 'index']);
 Route::get('/articles/{id}', [ArticleController::class, 'show'])
     ->middleware(EnsureVisitorCookie::class);
@@ -36,6 +38,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/issues/{issue}/publish', [IssueController::class, 'publish']);
     Route::put('/issues/{issue}', [IssueController::class, 'update']);
     Route::delete('/issues/{issue}', [IssueController::class, 'destroy']);
+    Route::get('/home/stats', [IssueController::class, 'dashboardStats']);
 
     // Protected article routes (Create, Update, Delete)
     // Create article with section and issue in URL
@@ -55,5 +58,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::get('/backups/download', [BackupController::class, 'download'])->name('backup.download');
         Route::post('/backups/create', [BackupController::class, 'create']);
         Route::post('/backups/restore', [BackupController::class, 'restore']);
+        Route::get('/all-users',[UserController::class,'index']);
+        Route::post('/add-user',[UserController::class,'addUser']);
+        Route::put('/update-user/{user}', [UserController::class, 'updateUser']);
+        Route::delete('/delete-user/{user}', [UserController::class, 'deleteUser']);
     });
 });

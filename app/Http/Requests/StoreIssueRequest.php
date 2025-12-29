@@ -38,6 +38,7 @@ class StoreIssueRequest extends FormRequest
                 env('ISSUE_STATUS_ARCHIVED', 'archived'),
             ])],
             'published_at' => 'nullable|date',
+            'keywords' => 'nullable|string',
             'is_featured' => 'boolean',
             'sort_order' => 'integer',
         ];

@@ -40,6 +40,7 @@ class UpdateArticleRequest extends FormRequest
                 env('ARTICLE_STATUS_PUBLISHED', 'published'),
                 env('ARTICLE_STATUS_ARCHIVED', 'archived'),
             ])],
+            'keywords' => 'sometimes|string',
             'published_at' => 'nullable|date',
         ];
     }

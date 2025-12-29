@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreArticleRequest;
 use App\Http\Requests\UpdateArticleRequest;
 use App\Models\Article;
+use App\Models\Issue;
 use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
@@ -44,6 +45,31 @@ class ArticleController extends Controller
         $articles = $query->paginate(15);
 
         return response()->json($articles);
+    }
+
+    public function byIssue(Request $request, Issue $issue)
+    {
+        $query = $issue->articles()->with(['issue']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('author')) {
+            $query->where('author_name', 'like', '%'.$request->author.'%');
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('gregorian_date', $request->date);
+        }
+
+        $query->latest();
+
+        $articles = $query->get();
+
+        return response()
+            ->json($articles)
+            ->header('X-Total-Count', (string) $articles->count());
     }
 
     /**
